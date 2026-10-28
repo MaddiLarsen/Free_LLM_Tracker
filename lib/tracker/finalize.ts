@@ -6,9 +6,9 @@
  * week-on-week trend is comparing two different things.
  */
 import { createAdminClient } from '@/lib/supabase'
-import { normalizeWebsite } from './analyze'
 import { aggregateAudit } from './aggregate'
-import type { AuditPromptResult, PromptType, Report } from './types'
+import { coercePromptType } from './types'
+import type { AuditPromptResult, Report } from './types'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -58,14 +58,14 @@ export async function finalizeAudit(admin: Admin, audit: FinalizableAudit): Prom
     id: r.id,
     idx: r.idx,
     text: r.prompt,
-    type: (r.type as PromptType) ?? 'category',
+    type: coercePromptType(r.type),
     status: r.status === 'success' ? 'success' : 'error',
     report: r.report,
     error: r.error ?? undefined,
     costUsd: r.cost_usd ?? 0,
   }))
 
-  const aggregate = aggregateAudit(audit.brand, normalizeWebsite(audit.website), results)
+  const aggregate = aggregateAudit(results)
 
   await admin
     .from('audits')

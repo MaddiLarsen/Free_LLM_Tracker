@@ -38,7 +38,6 @@ interface AuditRow {
   id: string
   brand: string
   website: string | null
-  competitors: string[] | null
 }
 
 /** Clone every recurring audit that is due into a fresh, queued audit. */
@@ -47,7 +46,7 @@ async function scheduleDueRuns(admin: Admin): Promise<number> {
 
   const { data } = await admin
     .from('audits')
-    .select('id, brand, website, competitors, last_run_at, created_at')
+    .select('id, brand, website, last_run_at, created_at')
     .eq('recurring', true)
     .or(`last_run_at.is.null,last_run_at.lt.${cutoff}`)
 
@@ -81,7 +80,6 @@ async function scheduleDueRuns(admin: Admin): Promise<number> {
       .insert({
         brand: parent.brand,
         website: parent.website,
-        competitors: parent.competitors ?? [],
         status: 'running',
         total_prompts: rows.length,
         parent_audit_id: parent.id,
@@ -137,7 +135,7 @@ async function drain(admin: Admin, startedAt: number): Promise<{ ran: number; re
 
     const { data: auditData } = await admin
       .from('audits')
-      .select('id, brand, website, competitors')
+      .select('id, brand, website')
       .eq('id', row.audit_id)
       .maybeSingle()
     const audit = auditData as AuditRow | null
@@ -148,7 +146,6 @@ async function drain(admin: Admin, startedAt: number): Promise<{ ran: number; re
         prompt: row.prompt,
         brand: audit.brand,
         website: normalizeWebsite(audit.website),
-        competitors: audit.competitors ?? [],
       })
       await admin
         .from('audit_prompts')

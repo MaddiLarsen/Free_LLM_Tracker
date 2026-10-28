@@ -7,7 +7,8 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase'
 import ReportView from '@/components/ReportView'
-import type { AuditAggregate, AuditPromptResult, PromptType, Report } from '@/lib/tracker/types'
+import { coercePromptType } from '@/lib/tracker/types'
+import type { AuditAggregate, AuditPromptResult, Report } from '@/lib/tracker/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,7 +78,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       id: r.id,
       createdAt: r.created_at,
       mentionRate: r.aggregate!.mentionRate,
-      shareOfVoice: r.aggregate!.shareOfVoice,
+      unbrandedMentionRate: r.aggregate!.unbrandedMentionRate ?? 0,
     }))
 
   const { data: promptData } = await admin
@@ -90,7 +91,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
     id: r.id,
     idx: r.idx,
     text: r.prompt,
-    type: (r.type as PromptType) ?? 'category',
+    type: coercePromptType(r.type),
     status: r.status === 'success' ? 'success' : 'error',
     report: r.report,
     error: r.error ?? undefined,

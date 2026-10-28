@@ -1,38 +1,43 @@
 /**
  * POST /api/audits
  *
- * Step 2. The user has reviewed the prompts. Save the audit and its prompt
- * list to the database and hand back an id. Nothing is run yet.
+ * The user has written their prompts. Save the audit and its prompt list, hand
+ * back an id. Nothing is run yet.
+ *
+ * Each prompt is tagged branded or unbranded HERE, from its text, using the
+ * same matcher that counts mentions in answers. That way the label a prompt
+ * carries and the counting done on its answers can never disagree.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { normalizeWebsite } from '@/lib/tracker/analyze'
+import { mentionsBrand } from '@/lib/tracker/brand-match'
 import type { PromptType } from '@/lib/tracker/types'
 
 export const runtime = 'nodejs'
-
-const TYPES: PromptType[] = ['brand', 'category', 'comparison']
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = (await request.json()) as {
       brand?: string
       website?: string
-      competitors?: string[]
-      prompts?: Array<{ text?: string; type?: string }>
+      prompts?: Array<{ text?: string }>
       recurring?: boolean
     }
 
     const brand = body.brand?.trim()
     if (!brand) return NextResponse.json({ error: 'Brand name is required.' }, { status: 400 })
 
+    const brandDomain = normalizeWebsite(body.website)
+
     const prompts = (body.prompts ?? [])
-      .map((p) => ({
-        text: String(p.text ?? '').trim(),
-        type: (TYPES.includes(p.type as PromptType) ? p.type : 'category') as PromptType,
-      }))
-      .filter((p) => p.text)
+      .map((p) => String(p.text ?? '').trim())
+      .filter(Boolean)
       .slice(0, 60)
+      .map((text): { text: string; type: PromptType } => ({
+        text,
+        type: mentionsBrand(text, brand, brandDomain) ? 'branded' : 'unbranded',
+      }))
 
     if (prompts.length === 0) {
       return NextResponse.json({ error: 'Add at least one prompt.' }, { status: 400 })
@@ -44,8 +49,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .from('audits')
       .insert({
         brand,
-        website: normalizeWebsite(body.website),
-        competitors: (body.competitors ?? []).map((c) => c.trim()).filter(Boolean).slice(0, 12),
+        website: brandDomain,
         status: 'review',
         total_prompts: prompts.length,
         // Marking it recurring makes the weekly cron re-run this exact prompt

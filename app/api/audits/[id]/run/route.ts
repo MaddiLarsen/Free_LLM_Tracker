@@ -33,7 +33,6 @@ interface AuditRow {
   id: string
   brand: string
   website: string | null
-  competitors: string[] | null
   status: string
 }
 
@@ -61,7 +60,7 @@ export async function POST(
 
     const { data } = await admin
       .from('audits')
-      .select('id, brand, website, competitors, status')
+      .select('id, brand, website, status')
       .eq('id', id)
       .maybeSingle()
 
@@ -134,7 +133,6 @@ export async function POST(
         prompt: claimed.prompt,
         brand: audit.brand,
         website: normalizeWebsite(audit.website),
-        competitors: audit.competitors ?? [],
       })
       await admin
         .from('audit_prompts')

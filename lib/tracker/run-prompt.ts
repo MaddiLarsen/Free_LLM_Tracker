@@ -14,9 +14,8 @@ export async function runPromptReport(params: {
   prompt: string
   brand: string
   website: string | null
-  competitors: string[]
 }): Promise<Report> {
-  const { prompt, brand, website, competitors } = params
+  const { prompt, brand, website } = params
 
   // 1. Every engine in parallel. runEngine catches its own errors, so one
   //    dead provider does not sink the run.
@@ -26,12 +25,12 @@ export async function runPromptReport(params: {
   await Promise.all(
     engines.map(async (engine) => {
       if (engine.status !== 'success' || !engine.text.trim()) return
-      const judge = await judgeResponse({ prompt, brand, website, competitors, answer: engine.text })
+      const judge = await judgeResponse({ prompt, brand, website, answer: engine.text })
       applyJudge(engine, judge, brand, website)
       engine.costUsd += judge.costUsd
     })
   )
 
   // 3. Aggregate.
-  return buildReport({ prompt, brand, website, competitors, createdAt: new Date().toISOString() }, engines)
+  return buildReport({ prompt, brand, website, createdAt: new Date().toISOString() }, engines)
 }

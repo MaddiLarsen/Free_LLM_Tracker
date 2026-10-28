@@ -14,7 +14,6 @@ interface AuditRow {
   id: string
   brand: string
   website: string | null
-  competitors: string[] | null
   status: string
   total_prompts: number
   aggregate: AuditSummary['aggregate']
@@ -32,7 +31,7 @@ export async function GET(
 
     const { data } = await admin
       .from('audits')
-      .select('id, brand, website, competitors, status, total_prompts, aggregate, created_at')
+      .select('id, brand, website, status, total_prompts, aggregate, created_at')
       .eq('id', id)
       .maybeSingle()
 
@@ -49,7 +48,6 @@ export async function GET(
       id: audit.id,
       brand: audit.brand,
       website: audit.website,
-      competitors: audit.competitors ?? [],
       status: audit.status as AuditSummary['status'],
       totalPrompts: audit.total_prompts,
       donePrompts: done ?? 0,

@@ -63,9 +63,6 @@ function emptyResult(def: EngineDef): EngineResult {
     brandMentioned: false,
     mentionCount: 0,
     sentiment: 'not_mentioned',
-    position: null,
-    brands: [],
-    shareOfVoice: 0,
     brandCitationCount: 0,
   }
 }
